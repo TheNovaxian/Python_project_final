@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Pixel Art Creator</title>
+</head>
+<body>
+    <h1>Gallery</h1>
+    <div>
+        {% for artwork in artworks %}
+            <div>
+                <h3>{{ artwork['title'] }}</h3>
+                <img src="data:image/png;base64,{{ artwork['image'] }}" alt="{{ artwork['title'] }}" width="100">
+                <p>{{ artwork['description'] }}</p>
+                <a href="{{ url_for('export_art', art_id=artwork['id']) }}">Download</a>
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
