@@ -46,6 +46,15 @@ def gallery():
     conn.close()
     return render_template('gallery.html', artworks=artworks)
 
+# Delete an artwork
+@app.route('/delete/<art_id>', methods=['POST'])
+def delete_art(art_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM artworks WHERE id = ?', (art_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('gallery'))
+
 
 # Save art to database
 @app.route('/save_art', methods=['POST'])
