@@ -12,7 +12,7 @@
         {% for artwork in artworks %}
             <div class="artwork-card">
                 <h3>{{ artwork['title'] }}</h3>
-                <img src="data:image/png;base64,{{ artwork['image'] }}" alt="{{ artwork['title'] }}" width="100">
+               <img src="{% if not artwork['image'].startswith('data:image/png;base64,') %}data:image/png;base64,{% endif %}{{ artwork['image'] }}" alt="{{ artwork['title'] }}" width="100">
                 <p>{{ artwork['description'] }}</p>
 
                 <button class="donwload-button">
