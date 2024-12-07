@@ -7,6 +7,7 @@ app = Flask(__name__)
 
 # Set up the SQLite database
 def get_db_connection():
+    print("Connecting to the database...")
     conn = sqlite3.connect('artworks.db')
     conn.row_factory = sqlite3.Row
     return conn
@@ -14,6 +15,7 @@ def get_db_connection():
 
 # Initialize the database
 def init_db():
+    print("Initializing the database...")
     conn = get_db_connection()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS artworks (
@@ -26,6 +28,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
+    print("Database initialized successfully.")
 
 init_db()
 
@@ -40,14 +43,17 @@ def decode_base64(image_data):
 # Home page (drawing page)
 @app.route('/')
 def index():
+    print("GET / - Rendering the drawing page.")
     return render_template('index.html')
 
 
 # Gallery page to view saved artworks
 @app.route('/gallery')
 def gallery():
+    print("GET /gallery - Fetching all artworks from the database.")
     conn = get_db_connection()
     artworks = conn.execute('SELECT * FROM artworks').fetchall()
+    print(f"Fetched {len(artworks)} artworks from the database.")
     # Add the data URL prefix when sending to template
     processed_artworks = []
     for artwork in artworks:
@@ -60,10 +66,12 @@ def gallery():
 # Delete an artwork
 @app.route('/delete/<art_id>', methods=['POST'])
 def delete_art(art_id):
+    print(f"POST /delete/{art_id} - Deleting artwork with ID: {art_id}")
     conn = get_db_connection()
     conn.execute('DELETE FROM artworks WHERE id = ?', (art_id,))
     conn.commit()
     conn.close()
+    print(f"Artwork with ID {art_id} deleted successfully.")
     return redirect(url_for('gallery'))
 
 
@@ -74,8 +82,7 @@ def save_art():
     description = request.form['description']
     image_data = request.form['image_data']
 
-    print(f"Received Title: {title}")
-    print(f"Received Description: {description}")
+    print(f"POST /save_art - Received title: {title}, description: {description}")
 
     # Check if the image data starts with 'data:image/png;base64,' and decode it
     if image_data.startswith('data:image/png;base64,'):
@@ -95,6 +102,7 @@ def save_art():
     # Store the binary image in the database
     try:
         conn = get_db_connection()
+        print(f"Inserting artwork into database: Title={title}, Description={description}")
         conn.execute('''
             INSERT INTO artworks (title, description, image) 
             VALUES (?, ?, ?)
@@ -112,6 +120,7 @@ def save_art():
 # Export art as PNG
 @app.route('/export/<art_id>', methods=['GET'])
 def export_art(art_id):
+    print(f"GET /export/{art_id} - Exporting artwork with ID: {art_id}")
     conn = get_db_connection()
     artwork = conn.execute('SELECT * FROM artworks WHERE id = ?', (art_id,)).fetchone()
     conn.close()
@@ -121,12 +130,15 @@ def export_art(art_id):
 
         # Check if the data starts with the PNG signature (for binary data)
         if image_data[:8] != b'\x89PNG\r\n\x1a\n':
+            print("Invalid PNG image data detected.")
             return "Invalid PNG image data", 400
 
         # Send the image as a file
+        print(f"Sending artwork with ID {art_id} as a PNG file.")
         return send_file(io.BytesIO(image_data), mimetype='image/png', as_attachment=True,
                          download_name=f"art_{art_id}.png")
     else:
+        print(f"Artwork with ID {art_id} not found.")
         return "Artwork not found", 404
 
 
