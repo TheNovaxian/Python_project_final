@@ -1,88 +1,91 @@
-let canvas = document.getElementById('pixelCanvas');
-let ctx = canvas.getContext('2d');
-let pixelSize = 10;
-let currentColor = '#000000'; // Default color: black
+// Reference the canvas and context
+const canvas = document.getElementById('pixelCanvas');
+const ctx = canvas.getContext('2d');
 
-// Function to draw a pixel
-function drawPixel(x, y, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-}
+// Set the initial canvas settings
+const pixelSize = 16; // Size of each pixel
+const rows = canvas.width / pixelSize; // Number of rows
+const cols = canvas.height / pixelSize; // Number of columns
 
-// Event listener to draw on the canvas
-canvas.addEventListener("click", function (e) {
-    let x = Math.floor(e.offsetX / pixelSize);
-    let y = Math.floor(e.offsetY / pixelSize);
-    drawPixel(x, y, currentColor);
+// Fill the canvas with a default color (optional)
+ctx.fillStyle = "#ffffff"; // Default canvas background
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Drawing state
+let isDrawing = false;
+let selectedColor = "#000000"; // Default color
+
+// Event listeners for drawing
+canvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    drawPixel(e); // Draw on initial click
 });
 
-// Set color for drawing (called by color picker)
-function setColor(color) {
-    currentColor = color;
+canvas.addEventListener('mousemove', (e) => {
+    if (isDrawing) {
+        drawPixel(e);
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+});
+
+canvas.addEventListener('mouseleave', () => {
+    isDrawing = false; // Stop drawing if mouse leaves canvas
+});
+
+// Event listener for the color picker
+document.getElementById('colorPicker').addEventListener('input', (e) => {
+    selectedColor = e.target.value;
+});
+
+// Function to calculate and draw the pixel
+function drawPixel(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((event.clientX - rect.left) / pixelSize) * pixelSize;
+    const y = Math.floor((event.clientY - rect.top) / pixelSize) * pixelSize;
+
+    ctx.fillStyle = selectedColor;
+    ctx.fillRect(x, y, pixelSize, pixelSize);
 }
 
-// Clear the canvas
+// Clear canvas function
 function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff"; // Reset to default color
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// Save the art (send data to Flask)
+// Save art function (converts canvas to base64)
 function saveArt() {
-    let title = prompt("Enter a title for your art:");
-    let description = prompt("Enter a description for your art:");
+    const imageData = canvas.toDataURL(); // Get base64 image data
+    const title = prompt("Enter a title for your artwork:");
+    const description = prompt("Enter a description:");
 
-    // Validate inputs
     if (!title || !description) {
-        alert("Please provide both a title and description.");
+        alert("Title and description are required.");
         return;
     }
 
-    // Convert canvas to image data (PNG)
-    let imageData = canvas.toDataURL('image/png'); // Converts canvas to base64 PNG data
-
-    // Send the data to Flask (POST request)
+    // Send data to the server
     fetch('/save_art', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&image_data=${encodeURIComponent(imageData)}`,
-    }).then(response => {
-        if (response.ok) {
-            alert("Art saved!");
-        } else {
-            alert("Failed to save art.");
-        }
-    }).catch(error => {
-        alert("An error occurred: " + error.message);
-    });
-}
-
-// Function to handle the deletion of artwork
-function deleteArtwork(artId) {
-    // Confirm the deletion
-    if (confirm("Are you sure you want to delete this artwork?")) {
-        // Send DELETE request to Flask to delete the artwork
-        fetch(`/delete_art/${artId}`, {
-            method: 'DELETE',
-        })
-        .then(response => {
+        body: new URLSearchParams({
+            title,
+            description,
+            image_data: imageData,
+        }),
+    })
+        .then((response) => {
             if (response.ok) {
-                alert("Artwork deleted successfully!");
-                // Remove the artwork from the gallery (without reloading)
-                document.getElementById(`artwork-${artId}`).remove();
+                alert("Artwork saved!");
+                window.location.href = '/gallery'; // Redirect to gallery
             } else {
-                alert("Failed to delete artwork.");
+                alert("Failed to save artwork.");
             }
         })
-        .catch(error => {
-            alert("An error occurred: " + error.message);
-        });
-    }
+        .catch((error) => console.error('Error saving artwork:', error));
 }
-
-
-// Event listener for color picker
-document.getElementById('colorPicker').addEventListener('input', (event) => {
-    setColor(event.target.value);
-});
