@@ -1,2 +1,5 @@
-flask
+flask~=3.0.3
 pillow
+
+cryptography~=44.0.0
+python-dotenv~=1.0.1
